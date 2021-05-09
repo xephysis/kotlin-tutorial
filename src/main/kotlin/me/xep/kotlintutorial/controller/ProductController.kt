@@ -21,7 +21,7 @@ class ProductController {
     lateinit var productRepository: ProductRepository
 
     @GetMapping("/{id}")
-    fun findOne(@PathVariable id: Int): Mono<Product> {
+    fun findOne(@PathVariable id: Long): Mono<Product> {
         return productRepository.findById(id)
     }
 
@@ -29,4 +29,6 @@ class ProductController {
     fun findAll(): Flux<Product> {
         return productRepository.findAll()
     }
+
+
 }

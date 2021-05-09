@@ -24,7 +24,7 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
     //적당한 샘플이 없어서 참조
     //https://github.com/kakaohairshop/spring-r2dbc-study/blob/main/src/main/kotlin/kr/co/hasys/springr2dbcstudy/shop/ShopControllerV2.kt
 
-    fun findById(id: Int): Mono<Product> {
+    fun findById(id: Long): Mono<Product> {
         return template.selectOne(query(where("id").`is`(id)), Product::class.java)
                 .switchIfEmpty(Mono.error(RuntimeException()))
     }
@@ -35,7 +35,7 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
                 .all()
     }
 
-    fun insertProduct(entity: Product): Mono<Product> {
+    fun insert(entity: Product): Mono<Product> {
         return template
                 .insert(Product::class.java)
                 .using(entity)
@@ -43,7 +43,7 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
 
     //save 로 하나로 퉁치는게 맞을것 같은데 일단은 뭐
     //아직까진 생각보다 조금 낯선것 같은데
-    fun updateProduct(entity: Product): Mono<Int> {
+    fun update(entity: Product): Mono<Int> {
         return template.selectOne(query(where("id").`is`(entity.id)), Product::class.java)
                 .switchIfEmpty(Mono.error(RuntimeException()))
                 .flatMap { it ->
@@ -52,5 +52,17 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
                             .apply(Update.update("name", entity.name)
                                     .set("price", entity.price))
                 }
+    }
+
+    fun delete(entity: Product): Mono<Void> {
+        return template.delete(entity)
+                .then()
+    }
+
+    fun deleteById(id: Long) : Mono<Int> {
+        return template.delete(Product::class.java)
+                .matching(query(where("id").`is`(id)))
+                .all()
+                .onErrorMap { RuntimeException() }
     }
 }
