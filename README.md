@@ -10,4 +10,14 @@
 * org.springframework.data.r2dbc.dialect.DialectResolver 의 static 초기화 중
   * org.springframework.data.relational.core.dialect.OracleDialect 가 없어서 초기화 하는 도중 터짐
   * 버전 문제일것 같음
-  
+  * org.springframework.data.relational.core.dialect.OracleDialect 은 spring-data-relation:2.0.9 에 없음
+```
+<!-- https://mvnrepository.com/artifact/org.springframework.data/spring-data-relational -->
+<dependency>
+    <groupId>org.springframework.data</groupId>
+    <artifactId>spring-data-relational</artifactId>
+    <version>2.2.0</version>
+</dependency>
+```
+* 그냥 spring boot version 을 올리고 해결 2.4.5
+* h2 대시 보드 안뜸

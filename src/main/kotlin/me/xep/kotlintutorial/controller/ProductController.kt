@@ -25,7 +25,7 @@ class ProductController {
         return productRepository.findById(id)
     }
 
-    @GetMapping("/")
+    @GetMapping("/", "")
     fun findAll(): Flux<Product> {
         return productRepository.findAll()
     }
