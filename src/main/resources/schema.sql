@@ -4,6 +4,3 @@ CREATE TABLE IF NOT EXISTS PRODUCT (
     `name` VARCHAR(128) NOT NULL,
     `price` DOUBLE NOT NULL
 );
-
-INSERT INTO PRODUCT (name, price) VALUES ('test', 0.5);
-

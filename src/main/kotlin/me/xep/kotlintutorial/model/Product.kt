@@ -20,4 +20,14 @@ class Product {
     init {
         println("product construct $id, $name, $price")
     }
+
+    //코틀린에서도 이런식으로 구현을... 해줘야하는구나 아니면 lombok 에서 data 달듯이 data 를 달아두던가
+    //https://stackoverflow.com/questions/45772946/equality-in-kotlin
+    override fun equals(other: Any?): Boolean {
+        if (other == null || other !is Product) {
+            return false;
+        }
+
+        return id == other.id && name == other.name && price == other.price
+    }
 }
