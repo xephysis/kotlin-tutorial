@@ -46,7 +46,7 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
     fun update(entity: Product): Mono<Int> {
         return template.selectOne(query(where("id").`is`(entity.id)), Product::class.java)
                 .switchIfEmpty(Mono.error(RuntimeException()))
-                .flatMap { it ->
+                .flatMap {
                     template.update(Product::class.java)
                             .matching(query(where("id").`is`(it.id)))
                             .apply(Update.update("name", entity.name)

@@ -165,5 +165,76 @@ internal class ProductRepositoryTest {
             .expectNextCount(1)
             .verifyComplete()
     }
+
+
+    //이게 잘 돌았는지는 결국 다시 꺼내봐야 아는건가
+    @Test
+    fun `update`() {
+        var prev = Product(0L, "prev", 1.1f)
+        repository.insert(prev)
+            .map { Product(it.id, "modified", 1.2f) }
+            .flatMap { repository.update(it) }
+    }
+
+    @Test
+    fun `update blocked`() {
+        var prev = Product(0L, "prev", 1.1f)
+        var mono = repository.insert(prev)
+            .map { Product(it.id, "modified", 1.2f) }
+            .flatMap { repository.update(it) }
+
+        var result = mono.block()!!
+        assertThat(result).isEqualTo(1)
+    }
+
+    //update 할게 없는 상태에서 error 를 뱉는게 맞는걸까? 아니면 일단 수행하고 나서 affected row 를 0으로 반환하는게 맞는걸까?
+    @Test
+    fun `not update blocked`() {
+        assertThrows<RuntimeException> {
+            var dummy = Product(Long.MAX_VALUE, "modified", 1.2f)
+            var mono = repository.update(dummy)
+            mono.block()!!
+        }
+    }
+
+    @Test
+    fun `update and get blocked`() {
+        var prev = Product(0L, "prev", 1.1f)
+        var updateName = "modified"
+        var updatePrice = 1.2f
+
+        var mono = repository.insert(prev)
+            .map { Product(it.id, updateName, updatePrice) }
+            .flatMap { repository.update(it) }
+
+        var result = mono.block()!!
+        assertThat(result).isEqualTo(1)
+
+        var updated = repository.findById(prev.id).block()!!
+        assertThat(updated.id).isEqualTo(prev.id)
+        assertThat(updated.name).isEqualTo(updateName)
+        assertThat(updated.price).isEqualTo(updatePrice)
+    }
+
+    @Test
+    fun `update and get reactive`() {
+        var insertMono = repository.insert(Product(0L, "prev", 1.1f))
+        var modifiedObjectMono = insertMono.map { Product(it.id, "modified", 1.2f) }
+        var updateMono = modifiedObjectMono.flatMap { repository.update(it) }
+        StepVerifier.create(updateMono)
+            .expectNext(1)
+            .verifyComplete()
+    }
+
+    @Test
+    fun `update and get reactive2`() {
+        var insertMono = repository.insert(Product(0L, "prev", 1.1f))
+        var modifiedObjectMono = insertMono.map { Product(it.id, "modified", 1.2f) }
+        var updateMono = modifiedObjectMono.flatMap { repository.update(it) }
+        StepVerifier.create(updateMono)
+            .assertNext { t -> assertThat(t).isEqualTo(1) }
+            .verifyComplete()
+    }
+
 }
 
