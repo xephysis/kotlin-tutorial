@@ -56,21 +56,20 @@ internal class ProductRepositoryTest {
     //blocking 안시키고 할 방법이 필요한데
     @Test
     fun `insert with blocking`() {
-        var target: Product = Product(0L, "test-product", 0.5f)
+        var target = Product("test-product", 0.5f)
         //!! 는 무슨 문법이지
         //https://philosopher-chan.tistory.com/58
         //아 null이 아니라고 명시
         target = repository.insert(target).block()!!
-        assert(target != null)
         assert(target.id != null)
         assert(target.id!! > 0L)
     }
 
     @Test
     fun `insert`() {
-        var target = Product(0L, "target", 0.5f)
+        val target = Product("target", 0.5f)
         StepVerifier.create(repository.insert(target))
-            .assertNext { assert(it.id > 0) }
+            .assertNext { assert(it.id!! > 0) }
             .verifyComplete()
     }
 
@@ -79,17 +78,18 @@ internal class ProductRepositoryTest {
     }
 
     @Test
-    fun `get invalid(expected mono error)`() {
-        StepVerifier.create(repository.findById(0))
+    fun `get invalid expected mono error`() {
+        StepVerifier.create(repository.findById(-1))
             .expectError()
+            .verify()
     }
 
     @Test
     fun `insert and invalid compare`() {
-        var prev = Product(0L, "prev", 1.1f)
+        val prev = Product("prev", 1.1f)
         repository.insert(prev).block()!!
 
-        var target = Product(0L, "target", 1.1f)
+        val target = Product("target", 1.1f)
 
         StepVerifier.create(repository.insert(target))
             .assertNext { t -> assertThat(t).isNotEqualTo(prev) }
@@ -98,7 +98,7 @@ internal class ProductRepositoryTest {
 
     @Test
     fun `insert and valid compare`() {
-        var target = Product(0L, "target", 1.1f)
+        val target = Product("target", 1.1f)
 
         StepVerifier.create(repository.insert(target))
             .assertNext { t -> assertThat(t).isEqualTo(target) }
@@ -107,10 +107,10 @@ internal class ProductRepositoryTest {
 
     @Test
     fun `insert and get`() {
-        var target = Product(0L, "target", 1.1f)
+        val target = Product("target", 1.1f)
 
         StepVerifier.create(repository.insert(target)
-            .flatMap { repository.findById(it.id) })
+            .flatMap { repository.findById(it.id!!) })
             .assertNext { t -> assertThat(t).isEqualTo(target) }
             .verifyComplete()
     }
@@ -118,8 +118,8 @@ internal class ProductRepositoryTest {
     //이런식으로 검증하는게 맞을까?
     @Test
     fun `insert multi`() {
-        var target1 = Product(0L, "target1", 1.1f)
-        var target2 = Product(0L, "target2", 1.2f)
+        val target1 = Product("target1", 1.1f)
+        val target2 = Product("target2", 1.2f)
 
         //https://www.baeldung.com/reactor-combine-streams#8-zip 이건 원하는거랑은 약간 다른데
         StepVerifier.create(
@@ -144,7 +144,7 @@ internal class ProductRepositoryTest {
     @Test
     fun `find all not empty`() {
         //한개 넣고 실패하나 확인
-        var prev = Product(0L, "prev", 1.1f)
+        val prev = Product("prev", 1.1f)
         repository.insert(prev).block()!!
 
         assertThrows<AssertionError> {
@@ -157,7 +157,7 @@ internal class ProductRepositoryTest {
 
     @Test
     fun `find all one exists`() {
-        var prev = Product(0L, "prev", 1.1f)
+        val prev = Product("prev", 1.1f)
         repository.insert(prev).block()!!
 
         repository.findAll()
@@ -169,21 +169,24 @@ internal class ProductRepositoryTest {
 
     //이게 잘 돌았는지는 결국 다시 꺼내봐야 아는건가
     @Test
-    fun `update`() {
-        var prev = Product(0L, "prev", 1.1f)
+    fun update() {
+        val prev = Product("prev", 1.1f)
         repository.insert(prev)
-            .map { Product(it.id, "modified", 1.2f) }
+            .map { Product(it.id!!, "modified", 1.2f) }
             .flatMap { repository.update(it) }
+            .`as` { StepVerifier.create(it) }
+            .expectNextCount(1)
+            .verifyComplete()
     }
 
     @Test
     fun `update blocked`() {
-        var prev = Product(0L, "prev", 1.1f)
-        var mono = repository.insert(prev)
-            .map { Product(it.id, "modified", 1.2f) }
+        val prev = Product("prev", 1.1f)
+        val mono = repository.insert(prev)
+            .map { Product(it.id!!, "modified", 1.2f) }
             .flatMap { repository.update(it) }
 
-        var result = mono.block()!!
+        val result = mono.block()!!
         assertThat(result).isEqualTo(1)
     }
 
@@ -191,36 +194,36 @@ internal class ProductRepositoryTest {
     @Test
     fun `not update blocked`() {
         assertThrows<RuntimeException> {
-            var dummy = Product(Long.MAX_VALUE, "modified", 1.2f)
-            var mono = repository.update(dummy)
+            val dummy = Product(-1, "modified", 1.2f)
+            val mono = repository.update(dummy)
             mono.block()!!
         }
     }
 
     @Test
     fun `update and get blocked`() {
-        var prev = Product(0L, "prev", 1.1f)
-        var updateName = "modified"
-        var updatePrice = 1.2f
+        val prev = Product("prev", 1.1f)
+        val updateName = "modified"
+        val updatePrice = 1.2f
 
-        var mono = repository.insert(prev)
-            .map { Product(it.id, updateName, updatePrice) }
+        val mono = repository.insert(prev)
+            .map { Product(it.id!!, updateName, updatePrice) }
             .flatMap { repository.update(it) }
 
-        var result = mono.block()!!
+        val result = mono.block()!!
         assertThat(result).isEqualTo(1)
 
-        var updated = repository.findById(prev.id).block()!!
-        assertThat(updated.id).isEqualTo(prev.id)
+        val updated = repository.findById(prev.id!!).block()!!
+        assertThat(updated.id).isEqualTo(prev.id!!)
         assertThat(updated.name).isEqualTo(updateName)
         assertThat(updated.price).isEqualTo(updatePrice)
     }
 
     @Test
     fun `update and get reactive`() {
-        var insertMono = repository.insert(Product(0L, "prev", 1.1f))
-        var modifiedObjectMono = insertMono.map { Product(it.id, "modified", 1.2f) }
-        var updateMono = modifiedObjectMono.flatMap { repository.update(it) }
+        val insertMono = repository.insert(Product("prev", 1.1f))
+        val modifiedObjectMono = insertMono.map { Product(it.id!!, "modified", 1.2f) }
+        val updateMono = modifiedObjectMono.flatMap { repository.update(it) }
         StepVerifier.create(updateMono)
             .expectNext(1)
             .verifyComplete()
@@ -228,9 +231,9 @@ internal class ProductRepositoryTest {
 
     @Test
     fun `update and get reactive2`() {
-        var insertMono = repository.insert(Product(0L, "prev", 1.1f))
-        var modifiedObjectMono = insertMono.map { Product(it.id, "modified", 1.2f) }
-        var updateMono = modifiedObjectMono.flatMap { repository.update(it) }
+        val insertMono = repository.insert(Product("prev", 1.1f))
+        val modifiedObjectMono = insertMono.map { Product(it.id!!, "modified", 1.2f) }
+        val updateMono = modifiedObjectMono.flatMap { repository.update(it) }
         StepVerifier.create(updateMono)
             .assertNext { t -> assertThat(t).isEqualTo(1) }
             .verifyComplete()

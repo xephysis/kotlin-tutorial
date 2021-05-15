@@ -2,7 +2,7 @@ package me.xep.kotlintutorial.repository
 
 import me.xep.kotlintutorial.model.Product
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.query.Criteria.where
+import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Repository
@@ -44,11 +44,17 @@ class ProductRepository(private val template: R2dbcEntityTemplate) {
     //save 로 하나로 퉁치는게 맞을것 같은데 일단은 뭐
     //아직까진 생각보다 조금 낯선것 같은데
     fun update(entity: Product): Mono<Int> {
-        return template.selectOne(query(where("id").`is`(entity.id)), Product::class.java)
+
+        //여기서 이런 체크를 해야하는게 맞나 아니면 서비스레이어에서 해야하는거 아닐까 싶기도 한데
+        if (entity.id == null) {
+            return Mono.error(RuntimeException("invalid id"))
+        }
+
+        return template.selectOne(query(where("id").`is`(entity.id!!)), Product::class.java)
                 .switchIfEmpty(Mono.error(RuntimeException()))
                 .flatMap {
                     template.update(Product::class.java)
-                            .matching(query(where("id").`is`(it.id)))
+                            .matching(query(where("id").`is`(it.id!!)))
                             .apply(Update.update("name", entity.name)
                                     .set("price", entity.price))
                 }
